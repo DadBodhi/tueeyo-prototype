@@ -8,8 +8,41 @@ datasource db {
 }
 
 model Event {
+  id                        String   @id @default(cuid())
+  title                     String
+  city                      String
+  createdAt                 DateTime @default(now())
+  event_type                String
+  style_id                  String?
+  level_id                  String?
+  venue_id                  String?
+  start_datetime            DateTime
+  end_datetime              DateTime
+  duration_minutes          Int?
+  style                     Style?   @relation(fields: [style_id], references: [id])
+  level                     Level?   @relation(fields: [level_id], references: [id])
+  venue                     Venue?   @relation(fields: [venue_id], references: [id])
+}
+
+model Style {
   id        String   @id @default(cuid())
-  title     String
+  name      String
+  createdAt DateTime @default(now())
+  events    Event[]
+}
+
+model Level {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  events    Event[]
+}
+
+model Venue {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
   city      String
   createdAt DateTime @default(now())
+  events    Event[]
 }
