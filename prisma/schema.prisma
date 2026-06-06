@@ -8,32 +8,69 @@ datasource db {
 }
 
 model Event {
-  id                        String   @id @default(cuid())
-  title                     String
-  city                      String
-  createdAt                 DateTime @default(now())
-  event_type                String
-  style_id                  String?
-  level_id                  String?
-  venue_id                  String?
-  start_datetime            DateTime
-  end_datetime              DateTime
-  duration_minutes          Int?
-  style                     Style?   @relation(fields: [style_id], references: [id])
-  level                     Level?   @relation(fields: [level_id], references: [id])
-  venue                     Venue?   @relation(fields: [venue_id], references: [id])
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  city        String
+  status      String    @default("draft")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Parent/child relationship
+  parentId    String?
+  parent      Event?    @relation("EventChildren", fields: [parentId], references: [id])
+  children    Event[]   @relation("EventChildren")
+
+  // Optional type (required for child events)
+  event_type  String?   // "class", "social"
+
+  // Location
+  venue_id    String?
+  venue       Venue?    @relation(fields: [venue_id], references: [id])
+
+  // Timing
+  start_datetime   DateTime?
+  end_datetime     DateTime?
+
+  // Cost
+  cost        Float?
+
+  // Class-specific
+  level_id    String?
+  level       Level?    @relation(fields: [level_id], references: [id])
+  teacher     String?
+
+  // Social-specific
+  dj          String?
+  band        String?
+
+  // Styles (many-to-many)
+  styles      EventStyle[]
+
+  // Recurrence
+  recurrence  EventRecurrence?
+}
+
+model EventStyle {
+  id       String @id @default(cuid())
+  event_id String
+  style_id String
+  event    Event  @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  style    Style  @relation(fields: [style_id], references: [id])
+
+  @@unique([event_id, style_id])
 }
 
 model Style {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now())
-  events    Event[]
+  id        String       @id @default(cuid())
+  name      String       @unique
+  createdAt DateTime     @default(now())
+  events    EventStyle[]
 }
 
 model Level {
   id        String   @id @default(cuid())
-  name      String
+  name      String   @unique
   createdAt DateTime @default(now())
   events    Event[]
 }
@@ -43,6 +80,21 @@ model Venue {
   name      String
   address   String
   city      String
+  postcode  String?
+  lat       Float?
+  lng       Float?
   createdAt DateTime @default(now())
   events    Event[]
+}
+
+model EventRecurrence {
+  id               String   @id @default(cuid())
+  event_id         String   @unique
+  event            Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  frequency        String   // "weekly", "fortnightly", "monthly"
+  day_of_week      Int?     // 0=Sunday, 1=Monday etc
+  week_of_month    Int?     // 1=first, 2=second, -1=last
+  specific_date    Int?     // e.g. 15th of each month
+  end_date         DateTime?
+  occurrence_count Int?
 }
