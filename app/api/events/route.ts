@@ -4,64 +4,124 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
+  const city = searchParams.get('city')
+  const status = searchParams.get('status')
   
-  if (id) {
-    // Get single event by ID
-    const event = await prisma.event.findUnique({
-      where: { id },
-      include: {
-        style: true,
-        level: true,
-        venue: true
+  try {
+    if (id) {
+      // Get single event by ID with children
+      const event = await prisma.event.findUnique({
+        where: { id },
+        include: {
+          style: true,
+          level: true,
+          venue: true,
+          children: {
+            include: {
+              style: true,
+              level: true,
+              venue: true
+            }
+          },
+          recurrence: true
+        }
+      })
+      
+      if (!event) {
+        return NextResponse.json({ error: 'Event not found' }, { status: 404 })
       }
-    })
-    if (!event) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      
+      return NextResponse.json(event)
+    } else {
+      // Get events with optional filters
+      const whereClause: any = {}
+      
+      if (city) {
+        whereClause.city = city
+      }
+      
+      if (status) {
+        whereClause.status = status
+      }
+      
+      const events = await prisma.event.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          style: true,
+          level: true,
+          venue: true,
+          recurrence: true
+        }
+      })
+      
+      return NextResponse.json(events)
     }
-    return NextResponse.json(event)
-  } else {
-    // Get all events
-    const events = await prisma.event.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        style: true,
-        level: true,
-        venue: true
-      }
-    })
-    return NextResponse.json(events)
+  } catch (error) {
+    console.error('Error fetching events:', error)
+    return NextResponse.json({ 
+      error: 'Failed to fetch events',
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    console.log('Received POST data:', JSON.stringify(body, null, 2)); // Debug log
     
-    // Validate required fields
-    if (!body.title || !body.city || !body.start_datetime || !body.end_datetime) {
-      console.error('Missing required fields in body:', body);
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    // Validate required fields for parent event
+    if (!body.title || !body.city) {
+      return NextResponse.json({ error: 'Missing required fields: title, city' }, { status: 400 })
     }
-
+    
+    // Handle parent/child relationship
+    let parentId = body.parentId;
+    let isChildEvent = false;
+    
+    if (parentId) {
+      // This is a child event, validate that parent exists
+      const parentEvent = await prisma.event.findUnique({
+        where: { id: parentId }
+      })
+      
+      if (!parentEvent) {
+        return NextResponse.json({ error: 'Parent event not found' }, { status: 400 })
+      }
+      
+      isChildEvent = true;
+      
+      // For child events, we need to validate that required fields are present
+      if (!body.event_type) {
+        return NextResponse.json({ error: 'Missing required field: event_type for child event' }, { status: 400 })
+      }
+    } else {
+      // This is a parent event, validate required fields
+      if (!body.start_datetime || !body.end_datetime) {
+        return NextResponse.json({ error: 'Missing required fields: start_datetime, end_datetime' }, { status: 400 })
+      }
+    }
+    
     // Create or find related entities (style, level, venue)
-    let styleId = body.style_id;
+    let styleIds: string[] = [];
     let levelId = body.level_id;
     let venueId = body.venue_id;
     
-    // If style name is provided and no style_id, create or find the style
-    if (body.style && !body.style_id) {
-      const existingStyle = await prisma.style.findFirst({
-        where: { name: body.style }
-      });
-      
-      if (existingStyle) {
-        styleId = existingStyle.id;
-      } else {
-        const newStyle = await prisma.style.create({
-          data: { name: body.style }
+    // Handle styles - can be multiple
+    if (body.styles && Array.isArray(body.styles)) {
+      for (const styleName of body.styles) {
+        const existingStyle = await prisma.style.findFirst({
+          where: { name: styleName }
         });
-        styleId = newStyle.id;
+        
+        if (existingStyle) {
+          styleIds.push(existingStyle.id);
+        } else {
+          const newStyle = await prisma.style.create({
+            data: { name: styleName }
+          });
+          styleIds.push(newStyle.id);
+        }
       }
     }
     
@@ -101,48 +161,78 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log('Creating event with:', {
+    // Prepare event data
+    const eventData: any = {
       title: body.title,
+      description: body.description || null,
       city: body.city,
-      event_type: body.event_type,
-      start_datetime: body.start_datetime,
-      end_datetime: body.end_datetime,
-      duration_minutes: body.duration_minutes,
-      style_id: styleId || null,
+      status: body.status || 'draft',
+      event_type: body.event_type || null,
+      start_datetime: body.start_datetime ? new Date(body.start_datetime) : null,
+      end_datetime: body.end_datetime ? new Date(body.end_datetime) : null,
+      duration_minutes: body.duration_minutes || null,
+      cost: body.cost || null,
       level_id: levelId || null,
-      venue_id: venueId || null
-    });
+      venue_id: venueId || null,
+      teacher: body.teacher || null,
+      dj: body.dj || null,
+      band: body.band || null,
+      parentId: parentId || null
+    }
 
+    // Create the event
     const event = await prisma.event.create({
-      data: {
-        title: body.title,
-        city: body.city,
-        event_type: body.event_type,
-        start_datetime: new Date(body.start_datetime),
-        end_datetime: new Date(body.end_datetime),
-        duration_minutes: body.duration_minutes || null,
-        style_id: styleId || null,
-        level_id: levelId || null,
-        venue_id: venueId || null
-      }
+      data: eventData
     })
-    
+
+    // Handle many-to-many relationship for styles
+    if (styleIds.length > 0) {
+      await prisma.eventStyle.createMany({
+        data: styleIds.map(styleId => ({
+          event_id: event.id,
+          style_id: styleId
+        }))
+      })
+    }
+
+    // Handle recurrence if provided
+    if (body.recurrence && !isChildEvent) {
+      const recurrenceData = {
+        event_id: event.id,
+        frequency: body.recurrence.frequency,
+        day_of_week: body.recurrence.day_of_week || null,
+        week_of_month: body.recurrence.week_of_month || null,
+        specific_date: body.recurrence.specific_date || null,
+        end_date: body.recurrence.end_date ? new Date(body.recurrence.end_date) : null,
+        occurrence_count: body.recurrence.occurrence_count || null
+      }
+      
+      await prisma.eventRecurrence.create({
+        data: recurrenceData
+      })
+    }
+
     // Fetch the event with relationships included for response
     const eventWithRelations = await prisma.event.findUnique({
       where: { id: event.id },
       include: {
         style: true,
         level: true,
-        venue: true
+        venue: true,
+        children: {
+          include: {
+            style: true,
+            level: true,
+            venue: true
+          }
+        },
+        recurrence: true
       }
     });
     
-    console.log('Created event successfully:', JSON.stringify(eventWithRelations, null, 2));
-    
     return NextResponse.json(eventWithRelations)
   } catch (error) {
-    console.error('Error creating event:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'Unknown error');
+    console.error('Error creating event:', error)
     return NextResponse.json({ 
       error: 'Failed to create event', 
       details: error instanceof Error ? error.message : 'Unknown error' 

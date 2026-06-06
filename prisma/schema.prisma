@@ -31,6 +31,7 @@ model Event {
   // Timing
   start_datetime   DateTime?
   end_datetime     DateTime?
+  deletedAt        DateTime?
 
   // Cost
   cost        Float?
