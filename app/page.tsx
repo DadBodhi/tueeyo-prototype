@@ -22,7 +22,11 @@ export default async function Home({ searchParams }: { searchParams: { city?: st
       },
       orderBy: { createdAt: 'desc' },
       include: {
-        style: true,
+        styles: {
+          include: {
+            style: true
+          }
+        },
         level: true,
         venue: true
       }
@@ -31,7 +35,11 @@ export default async function Home({ searchParams }: { searchParams: { city?: st
     events = await prisma.event.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        style: true,
+        styles: {
+          include: {
+            style: true
+          }
+        },
         level: true,
         venue: true
       }
@@ -93,9 +101,9 @@ export default async function Home({ searchParams }: { searchParams: { city?: st
                         {event.event_type}
                       </span>
                     )}
-                    {event.style && (
+                    {event.styles[0]?.style && (
                       <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                        {event.style.name}
+                        {event.styles[0]?.style.name}
                       </span>
                     )}
                     {event.level && (
