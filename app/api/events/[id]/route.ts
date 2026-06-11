@@ -53,7 +53,10 @@ export async function PUT(
     
     // Check if event exists
     const existingEvent = await prisma.event.findUnique({
-      where: { id: params.id }
+      where: { id: params.id },
+      include: {
+        recurrence: true
+      }
     })
     
     if (!existingEvent) {
@@ -182,6 +185,72 @@ export async function PUT(
         }
       }
     }
+
+    // Handle children if provided - create new child events
+    if (body.children !== undefined && Array.isArray(body.children)) {
+      // First delete existing children to avoid duplicates
+      await prisma.event.deleteMany({
+        where: { parentId: updatedEvent.id }
+      });
+      
+      // Create new children
+      if (existingEvent.start_datetime) {
+        for (const child of body.children) {
+          const startTime = child.start_time || '00:00';
+          const endTime = child.end_time || '00:00';
+          
+          const childPayload = {
+            title: `${updatedEvent.title} - ${child.event_type}`,
+            event_type: child.event_type,
+            parentId: updatedEvent.id,
+            start_datetime: new Date(`${existingEvent.start_datetime.toISOString().split('T')[0]}T${startTime}:00`),
+            end_datetime: new Date(`${existingEvent.start_datetime.toISOString().split('T')[0]}T${endTime}:00`),
+            description: child.description || null,
+            venue_id: updatedEvent.venue_id,
+            cost: child.cost,
+            city: updatedEvent.city, // Include required fields from parent event
+            status: 'draft', // Default status for children
+          };
+          
+          // Add class-specific fields
+          if (child.event_type === 'class') {
+            (childPayload as any).level_id = child.level_id;
+            (childPayload as any).teacher = child.teacher;
+          }
+          
+          // Add social-specific fields
+          if (child.event_type === 'social') {
+            (childPayload as any).dj = child.dj;
+            (childPayload as any).band = child.band;
+          }
+          
+          // Handle styles for social events
+          if (child.event_type === 'social' && child.style_ids) {
+            // Create the child event first to get its ID
+            const newChildEvent = await prisma.event.create({
+              data: childPayload
+            });
+            
+            // Then create the style associations
+            const styleEntries = child.style_ids.map((styleId: string) => ({
+              event_id: newChildEvent.id,
+              style_id: styleId
+            }));
+            
+            if (styleEntries.length > 0) {
+              await prisma.eventStyle.createMany({
+                data: styleEntries
+              });
+            }
+          } else {
+            // For class events or other types, create directly
+            await prisma.event.create({
+              data: childPayload
+            });
+          }
+        }
+      }
+    }
     
     // Fetch the event with relationships included for response
     const eventWithRelations = await prisma.event.findUnique({
@@ -230,7 +299,7 @@ export async function DELETE(
     const deletedEvent = await prisma.event.update({
       where: { id: params.id },
       data: {
-        deleted_at: new Date()
+        deletedAt: new Date()
       }
     })
     
