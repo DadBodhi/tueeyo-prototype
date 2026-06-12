@@ -52,7 +52,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
         <div className="bg-white border border-rose-200 p-6 rounded shadow-sm mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-slate-600 mb-2">Location: {event.city}</p>
+              <p className="text-slate-600 mb-2">Location: {event.venue?.name || 'Unknown Location'}</p>
               <p className="text-slate-600 mb-2">Type: {event.event_type}</p>
               {event.style && (
                 <p className="text-slate-600 mb-2">Style: {event.style.name}</p>

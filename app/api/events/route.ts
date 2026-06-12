@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
-  const city = searchParams.get('city')
   const status = searchParams.get('status')
   
   if (id) {
@@ -40,13 +39,9 @@ export async function GET(request: Request) {
     }
     return NextResponse.json(event)
   } else {
-    // Get events filtered by city and status, only parents (no children)
+    // Get events filtered by status, only parents (no children)
     const whereClause: any = {
       parentId: null // Only parent events
-    }
-    
-    if (city) {
-      whereClause.city = city
     }
     
     if (status) {
@@ -78,7 +73,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     
     // Validate required fields for parent events
-    if (!body.title || !body.city) {
+    if (!body.title) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
     
@@ -119,34 +114,33 @@ export async function POST(request: Request) {
     
     // Create or find venue if provided
     let venueId = body.venue_id
-    if (body.venue && !body.venue_id) {
-      const existingVenue = await prisma.venue.findFirst({
-        where: { name: body.venue }
-      })
-      
-      if (existingVenue) {
-        venueId = existingVenue.id
-      } else {
-        const newVenue = await prisma.venue.create({
-          data: { 
-            name: body.venue,
-            address: body.address || '',
-            city: body.city,
-            postcode: body.postcode || null,
-            lat: body.lat || null,
-            lng: body.lng || null
-          }
+      if (body.venue && !body.venue_id) {
+        const existingVenue = await prisma.venue.findFirst({
+          where: { name: body.venue }
         })
-        venueId = newVenue.id
+        
+        if (existingVenue) {
+          venueId = existingVenue.id
+        } else {
+          const newVenue = await prisma.venue.create({
+            data: { 
+              name: body.venue,
+              address: body.address || '',
+              city: body.city || '', // Ensure city is provided
+              postcode: body.postcode || null,
+              lat: body.lat || null,
+              lng: body.lng || null
+            }
+          })
+          venueId = newVenue.id
+        }
       }
-    }
     
     // Create event
     const event = await prisma.event.create({
       data: {
         title: body.title,
         description: body.description || null,
-        city: body.city,
         status: body.status || 'draft',
         event_type: body.event_type || null,
         start_datetime: body.start_datetime ? new Date(body.start_datetime) : null,

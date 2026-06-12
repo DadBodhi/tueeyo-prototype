@@ -87,27 +87,27 @@ export async function PUT(
     
     // Create or find venue if provided
     let venueId = body.venue_id
-    if (body.venue && !body.venue_id) {
-      const existingVenue = await prisma.venue.findFirst({
-        where: { name: body.venue }
-      })
-      
-      if (existingVenue) {
-        venueId = existingVenue.id
-      } else {
+      if (body.venue && !body.venue_id) {
+        const existingVenue = await prisma.venue.findFirst({
+          where: { name: body.venue }
+        })
+        
+        if (existingVenue) {
+          venueId = existingVenue.id
+        } else {
         const newVenue = await prisma.venue.create({
           data: { 
             name: body.venue,
             address: body.address || '',
-            city: body.city,
+            city: body.city || '', // Need to handle city for venue since it's required in schema
             postcode: body.postcode || null,
             lat: body.lat || null,
             lng: body.lng || null
           }
         })
-        venueId = newVenue.id
+          venueId = newVenue.id
+        }
       }
-    }
     
     // Update event
     const updatedEvent = await prisma.event.update({
@@ -115,7 +115,6 @@ export async function PUT(
       data: {
         title: body.title || existingEvent.title,
         description: body.description !== undefined ? body.description : existingEvent.description,
-        city: body.city || existingEvent.city,
         status: body.status || existingEvent.status,
         event_type: body.event_type || existingEvent.event_type,
         start_datetime: body.start_datetime ? new Date(body.start_datetime) : existingEvent.start_datetime,
@@ -150,7 +149,7 @@ export async function PUT(
     
     // Handle recurrence if provided
     if (body.recurrence !== undefined) {
-      if (existingEvent.recurrence) {
+      if (existingEvent.recurrence?.id) {
         // Update existing recurrence
         await prisma.eventRecurrence.update({
           where: { id: existingEvent.recurrence.id },
@@ -178,7 +177,7 @@ export async function PUT(
         })
       } else {
         // Recurrence was removed, delete it
-        if (existingEvent.recurrence) {
+        if (existingEvent.recurrence && existingEvent.recurrence.id) {
           await prisma.eventRecurrence.delete({
             where: { id: existingEvent.recurrence.id }
           })
@@ -206,10 +205,10 @@ export async function PUT(
             start_datetime: new Date(`${existingEvent.start_datetime.toISOString().split('T')[0]}T${startTime}:00`),
             end_datetime: new Date(`${existingEvent.start_datetime.toISOString().split('T')[0]}T${endTime}:00`),
             description: child.description || null,
-            venue_id: updatedEvent.venue_id,
+            venue_id: updatedEvent.venue_id, // Inherit venue from parent
             cost: child.cost,
-            city: updatedEvent.city, // Include required fields from parent event
             status: 'draft', // Default status for children
+            // Don't set city explicitly - it should come from the venue relationship
           };
           
           // Add class-specific fields

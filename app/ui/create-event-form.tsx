@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 export default function CreateEventForm() {
   const router = useRouter()
   const [title, setTitle] = useState('')
-  const [city, setCity] = useState('')
   const [eventType, setEventType] = useState('workshop')
   const [startDate, setStartDate] = useState('')
   const [startTime, setStartTime] = useState('')
@@ -35,7 +34,6 @@ export default function CreateEventForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           title, 
-          city,
           event_type: eventType,
           start_datetime: startDateTime,
           end_datetime: endDateTime,
@@ -77,14 +75,6 @@ export default function CreateEventForm() {
         placeholder="Event title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-full border p-2 rounded"
-        required
-      />
-      <input
-        type="text"
-        placeholder="City"
-        value={city}
-        onChange={(e) => setCity(e.target.value)}
         className="w-full border p-2 rounded"
         required
       />

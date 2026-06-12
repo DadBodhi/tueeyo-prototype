@@ -1,56 +1,100 @@
 import { prisma } from '@/app/lib/db'
-import CreateEventForm from '@/app/ui/create-event-form'
 import Link from 'next/link'
 
-export default async function Home({ searchParams }: { searchParams: { city?: string } }) {
-  const cityFilter = searchParams.city || ''
+export default async function Home({
+  searchParams
+}: {
+  searchParams?: {
+    city?: string
+    style?: string
+    level?: string
+  }
+}) {
+  // Get filter parameters from URL
+  const cityFilter = searchParams?.city || ''
+  const styleFilter = searchParams?.style || ''
+  const levelFilter = searchParams?.level || ''
 
-  const cities = await prisma.event.findMany({
-    select: { city: true },
-    distinct: ['city'],
-    orderBy: { city: 'asc' }
-  })
-
-  let events
+  // Build the where clause for the Prisma query
+  const whereClause: any = {}
+  
   if (cityFilter) {
-    events = await prisma.event.findMany({
-      where: {
-        city: {
-          contains: cityFilter,
-          mode: 'insensitive'
+    whereClause.venue = {
+      city: cityFilter
+    }
+  }
+  
+  if (styleFilter) {
+    whereClause.styles = {
+      some: {
+        style: {
+          name: styleFilter
         }
-      },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        styles: {
-          include: {
-            style: true
-          }
-        },
-        level: true,
-        venue: true
       }
-    })
-  } else {
-    events = await prisma.event.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        styles: {
-          include: {
-            style: true
-          }
-        },
-        level: true,
-        venue: true
-      }
-    })
+    }
+  }
+  
+  if (levelFilter) {
+    whereClause.level = {
+      name: levelFilter
+    }
   }
 
-  // app/page.tsx - just the return, rest stays the same
+  const events = await prisma.event.findMany({
+    where: whereClause,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      styles: {
+        include: {
+          style: true
+        }
+      },
+      level: true,
+      venue: true
+    }
+  })
+
+  // Get unique cities for filter dropdown - use groupBy to avoid null issues
+  const cities = await prisma.venue.groupBy({
+    by: ['city'],
+    where: {
+      city: {
+        not: null,
+        not: ''
+      }
+    },
+    _count: {
+      city: true
+    }
+  })
+  
+  // Get unique styles for filter dropdown
+  const styles = await prisma.style.findMany({
+    select: {
+      name: true
+    }
+  })
+  
+  // Get unique levels for filter dropdown
+  const levels = await prisma.level.findMany({
+    select: {
+      name: true
+    }
+  })
+
   return (
     <main className="min-h-screen bg-rose-50">
       <div className="max-w-2xl mx-auto p-8">
-        <h1 className="text-3xl font-bold mb-8 text-rose-900">Tueeyo Events</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-rose-900">Tueeyo Events</h1>
+          <Link 
+            href="/events/create" 
+            className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            Create Event
+          </Link>
+        </div>
+        
         <svg viewBox="0 0 800 40" className="w-full mb-8" preserveAspectRatio="none">
           <path
             d="M0,20 C100,0 200,40 300,20 C400,0 500,40 600,20 C700,0 800,40 800,20"
@@ -59,42 +103,76 @@ export default async function Home({ searchParams }: { searchParams: { city?: st
             strokeWidth="2.5"
           />
         </svg>
-        <form action="/" method="GET" className="mb-6">
-          <div className="flex gap-2">
-            <select
-              name="city"
-              defaultValue={cityFilter}
-              className="border border-rose-200 p-2 rounded flex-grow text-slate-700 bg-white"
-            >
-              <option value="">All cities</option>
-              {cities.map((c) => (
-               <option key={c.city} value={c.city}>{c.city}</option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="bg-rose-800 text-white px-4 py-2 rounded hover:bg-rose-900"
-            >
-              Filter
-            </button>
-            {cityFilter && (
-              <a href="/" className="bg-rose-200 text-rose-900 px-4 py-2 rounded hover:bg-rose-300">
-                Clear
-              </a>
-            )}
-          </div>
-        </form>
-      
-        <CreateEventForm />
+        
+        {/* Filter options */}
+        <div className="mb-6 p-4 bg-white rounded-lg shadow-sm">
+          <h2 className="text-lg font-semibold text-rose-900 mb-3">Filter Events</h2>
+          <form action="/" method="GET" className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
+              <select 
+                name="city" 
+                defaultValue={cityFilter}
+                className="w-full p-2 border border-slate-300 rounded"
+              >
+                <option value="">All Cities</option>
+                {cities.map((city) => (
+                  <option key={city.city} value={city.city}>
+                    {city.city}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Style</label>
+              <select 
+                name="style" 
+                defaultValue={styleFilter}
+                className="w-full p-2 border border-slate-300 rounded"
+              >
+                <option value="">All Styles</option>
+                {styles.map((style) => (
+                  <option key={style.name} value={style.name}>
+                    {style.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Level</label>
+              <select 
+                name="level" 
+                defaultValue={levelFilter}
+                className="w-full p-2 border border-slate-300 rounded"
+              >
+                <option value="">All Levels</option>
+                {levels.map((level) => (
+                  <option key={level.name} value={level.name}>
+                    {level.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-3 flex justify-end">
+              <button 
+                type="submit" 
+                className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </form>
+        </div>
+
         {events.length === 0 ? (
-          <p className="text-slate-500">No events yet.</p>
+          <p className="text-slate-500">No events found matching your criteria.</p>
         ) : (
           <ul className="space-y-4">
             {events.map((event) => (
               <li key={event.id} className="bg-white border border-rose-200 p-4 rounded shadow-sm">
                 <Link href={`/events/${event.id}`} className="block">
                   <h2 className="text-xl font-semibold text-rose-900 hover:text-rose-700">{event.title}</h2>
-                  <p className="text-slate-600">{event.city}</p>
+                  <p className="text-slate-600">{event.venue?.name || 'Unknown Location'}{event.venue?.city ? `, ${event.venue.city}` : ''}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {event.event_type && (
                       <span className="bg-rose-100 text-rose-800 text-xs px-2 py-1 rounded">
@@ -113,7 +191,7 @@ export default async function Home({ searchParams }: { searchParams: { city?: st
                     )}
                     {event.venue && (
                       <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">
-                        {event.venue.name}
+                        {event.venue.name}{event.venue.city ? ` (${event.venue.city})` : ''}
                       </span>
                     )}
                   </div>

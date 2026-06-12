@@ -8,48 +8,29 @@ datasource db {
 }
 
 model Event {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  city        String
-  status      String    @default("draft")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Parent/child relationship
-  parentId    String?
-  parent      Event?    @relation("EventChildren", fields: [parentId], references: [id])
-  children    Event[]   @relation("EventChildren")
-
-  // Optional type (required for child events)
-  event_type  String?   // "class", "social"
-
-  // Location
-  venue_id    String?
-  venue       Venue?    @relation(fields: [venue_id], references: [id])
-
-  // Timing
-  start_datetime   DateTime?
-  end_datetime     DateTime?
-  deletedAt        DateTime?
-
-  // Cost
-  cost        Float?
-
-  // Class-specific
-  level_id    String?
-  level       Level?    @relation(fields: [level_id], references: [id])
-  teacher     String?
-
-  // Social-specific
-  dj          String?
-  band        String?
-
-  // Styles (many-to-many)
-  styles      EventStyle[]
-
-  // Recurrence
-  recurrence  EventRecurrence?
+  id             String           @id @default(cuid())
+  title          String
+  createdAt      DateTime         @default(now())
+  band           String?
+  cost           Float?
+  deletedAt      DateTime?
+  description    String?
+  dj             String?
+  end_datetime   DateTime?
+  event_type     String?
+  level_id       String?
+  parentId       String?
+  start_datetime DateTime?
+  status         String           @default("draft")
+  teacher        String?
+  updatedAt      DateTime         @updatedAt
+  venue_id       String?
+  level          Level?           @relation(fields: [level_id], references: [id])
+  parent         Event?           @relation("EventChildren", fields: [parentId], references: [id])
+  children       Event[]          @relation("EventChildren")
+  venue          Venue?           @relation(fields: [venue_id], references: [id])
+  recurrence     EventRecurrence?
+  styles         EventStyle[]
 }
 
 model EventStyle {
@@ -89,13 +70,13 @@ model Venue {
 }
 
 model EventRecurrence {
-  id               String   @id @default(cuid())
-  event_id         String   @unique
-  event            Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
-  frequency        String   // "weekly", "fortnightly", "monthly"
-  day_of_week      Int?     // 0=Sunday, 1=Monday etc
-  week_of_month    Int?     // 1=first, 2=second, -1=last
-  specific_date    Int?     // e.g. 15th of each month
+  id               String    @id @default(cuid())
+  event_id         String    @unique
+  frequency        String
+  day_of_week      Int?
+  week_of_month    Int?
+  specific_date    Int?
   end_date         DateTime?
   occurrence_count Int?
+  event            Event     @relation(fields: [event_id], references: [id], onDelete: Cascade)
 }

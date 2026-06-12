@@ -185,6 +185,8 @@ export default function CreateEventPage() {
     setVenueId(venueId)
     setShowAddVenue(false)
     setVenueCity(venueCity || 'London')
+    setSearchTerm('') // Clear the search term after selection
+    setVenues([]) // Clear the venues list after selection
   }
 
   // Create new venue
