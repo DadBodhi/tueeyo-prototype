@@ -443,6 +443,12 @@ export default function CreateEventPage() {
   const handleAddClass = async () => {
     if (!classStyle || !classStartTime || !classEndTime) return
     
+    // Validate that we have level and style IDs
+    if (!classLevelId || !classStyleId) {
+      alert('Please select or create valid level and style');
+      return;
+    }
+    
     let eventId = parentEventId;
     
     // Save parent event first if needed
@@ -851,63 +857,123 @@ export default function CreateEventPage() {
                 <h3 className="text-lg font-medium mb-4 text-slate-700">Add Class</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Style */}
-                  <div>
-                    <label htmlFor="classStyle" className="block text-sm font-medium mb-1 text-slate-700">Style</label>
-                    <input
-                      type="text"
-                      id="classStyle"
-                      value={classStyle}
-                      onChange={(e) => setClassStyle(e.target.value)}
-                      placeholder="Enter style name..."
-                      className="w-full border p-2 rounded"
-                      required
-                    />
-                    {classStyle && (
-                      <div className="mt-1">
-                        <button 
-                          type="button" 
-                          onClick={() => {
-                            // For now we'll just set the ID to match the name
-                            const styleId = classStyle.toLowerCase().replace(/\s+/g, '_');
-                            setClassStyleId(styleId);
-                          }}
-                          className="text-rose-700 hover:text-rose-900 text-sm"
-                        >
-                          Use this style
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                    {/* Style */}
+                    <div>
+                      <label htmlFor="classStyle" className="block text-sm font-medium mb-1 text-slate-700">Style</label>
+                      <input
+                        type="text"
+                        id="classStyle"
+                        value={classStyle}
+                        onChange={(e) => setClassStyle(e.target.value)}
+                        placeholder="Enter style name..."
+                        className="w-full border p-2 rounded"
+                        required
+                      />
+                      {classStyle && (
+                        <div className="mt-1">
+                          <button 
+                            type="button" 
+                            onClick={async () => {
+                              // Try to find existing style or create new one
+                              try {
+                                const response = await fetch(`/api/styles?name=${encodeURIComponent(classStyle)}`);
+                                const styles = await response.json();
+                                
+                                if (styles && styles.length > 0) {
+                                  // Use existing style ID
+                                  setClassStyleId(styles[0].id);
+                                } else {
+                                  // Create new style and use its ID
+                                  const newStyleResponse = await fetch('/api/styles', {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({ name: classStyle }),
+                                  });
+                                  
+                                  if (newStyleResponse.ok) {
+                                    const newStyle = await newStyleResponse.json();
+                                    setClassStyleId(newStyle.id);
+                                  } else {
+                                    // If creation fails, fallback to placeholder
+                                    const styleId = classStyle.toLowerCase().replace(/\s+/g, '_');
+                                    setClassStyleId(styleId);
+                                  }
+                                }
+                              } catch (error) {
+                                console.error('Error handling style:', error);
+                                // Fallback to placeholder ID on error
+                                const styleId = classStyle.toLowerCase().replace(/\s+/g, '_');
+                                setClassStyleId(styleId);
+                              }
+                            }}
+                            className="text-rose-700 hover:text-rose-900 text-sm"
+                          >
+                            Use this style
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   
-                  {/* Level */}
-                  <div>
-                    <label htmlFor="classLevel" className="block text-sm font-medium mb-1 text-slate-700">Level</label>
-                    <input
-                      type="text"
-                      id="classLevel"
-                      value={classLevel}
-                      onChange={(e) => setClassLevel(e.target.value)}
-                      placeholder="Enter level name..."
-                      className="w-full border p-2 rounded"
-                      required
-                    />
-                    {classLevel && (
-                      <div className="mt-1">
-                        <button 
-                          type="button" 
-                          onClick={() => {
-                            // For now we'll just set the ID to match the name
-                            const levelId = classLevel.toLowerCase().replace(/\s+/g, '_');
-                            setClassLevelId(levelId);
-                          }}
-                          className="text-rose-700 hover:text-rose-900 text-sm"
-                        >
-                          Use this level
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                    {/* Level */}
+                    <div>
+                      <label htmlFor="classLevel" className="block text-sm font-medium mb-1 text-slate-700">Level</label>
+                      <input
+                        type="text"
+                        id="classLevel"
+                        value={classLevel}
+                        onChange={(e) => setClassLevel(e.target.value)}
+                        placeholder="Enter level name..."
+                        className="w-full border p-2 rounded"
+                        required
+                      />
+                      {classLevel && (
+                        <div className="mt-1">
+                          <button 
+                            type="button" 
+                            onClick={async () => {
+                              // Try to find existing level or create new one
+                              try {
+                                const response = await fetch(`/api/levels?name=${encodeURIComponent(classLevel)}`);
+                                const levels = await response.json();
+                                
+                                if (levels && levels.length > 0) {
+                                  // Use existing level ID
+                                  setClassLevelId(levels[0].id);
+                                } else {
+                                  // Create new level and use its ID
+                                  const newLevelResponse = await fetch('/api/levels', {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({ name: classLevel }),
+                                  });
+                                  
+                                  if (newLevelResponse.ok) {
+                                    const newLevel = await newLevelResponse.json();
+                                    setClassLevelId(newLevel.id);
+                                  } else {
+                                    // If creation fails, fallback to placeholder
+                                    const levelId = classLevel.toLowerCase().replace(/\s+/g, '_');
+                                    setClassLevelId(levelId);
+                                  }
+                                }
+                              } catch (error) {
+                                console.error('Error handling level:', error);
+                                // Fallback to placeholder ID on error
+                                const levelId = classLevel.toLowerCase().replace(/\s+/g, '_');
+                                setClassLevelId(levelId);
+                              }
+                            }}
+                            className="text-rose-700 hover:text-rose-900 text-sm"
+                          >
+                            Use this level
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   
                   {/* Teacher */}
                   <div>
@@ -977,7 +1043,37 @@ export default function CreateEventPage() {
                 <div className="flex gap-2 mt-4">
                   <button
                     type="button"
-                    onClick={handleAddClass}
+                    onClick={async () => {
+                      // Validate that we have a level and style before adding
+                      if (!classLevel || !classStyle) {
+                        alert('Please enter both level and style');
+                        return;
+                      }
+                      
+                      // Ensure we have valid IDs
+                      if (!classLevelId || !classStyleId) {
+                        alert('Please select or create valid level and style');
+                        return;
+                      }
+                      
+                      const newChild = {
+                        event_type: 'class',
+                        start_time: classStartTime,
+                        end_time: classEndTime,
+                        style_id: classStyleId,
+                        level_id: classLevelId,
+                        teacher: teacher || undefined
+                      };
+                      
+                      setChildren([...children, newChild]);
+                      // Reset form fields
+                      setClassLevel('');
+                      setClassLevelId('');
+                      setClassStyle('');
+                      setClassStyleId('');
+                      setTeacher('');
+                      setShowClassForm(false);
+                    }}
                     className="bg-rose-800 text-white px-4 py-2 rounded hover:bg-rose-900"
                   >
                     Add Class
@@ -1129,7 +1225,7 @@ export default function CreateEventPage() {
                         {child.event_type === 'class' && (
                           <>
                             {' - '}
-                            {child.style_id || 'Style'} | {child.level_id || 'Level'}
+                            Style: {child.style_id || 'None'} | Level: {child.level_id || 'None'}
                             {child.teacher && ` | ${child.teacher}`}
                           </>
                         )}

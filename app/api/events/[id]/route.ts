@@ -213,7 +213,27 @@ export async function PUT(
           
           // Add class-specific fields
           if (child.event_type === 'class') {
-            (childPayload as any).level_id = child.level_id;
+            // Validate that level_id exists before setting it
+            if (child.level_id) {
+              try {
+                const levelExists = await prisma.level.findUnique({
+                  where: { id: child.level_id }
+                });
+                
+                if (levelExists) {
+                  (childPayload as any).level_id = child.level_id;
+                } else {
+                  console.warn(`Level with ID ${child.level_id} does not exist, setting level_id to null`);
+                  (childPayload as any).level_id = null;
+                }
+              } catch (error) {
+                console.error('Error validating level_id:', error);
+                (childPayload as any).level_id = null;
+              }
+            } else {
+              // If no level_id provided, explicitly set it to null
+              (childPayload as any).level_id = null;
+            }
             (childPayload as any).teacher = child.teacher;
           }
           

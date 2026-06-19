@@ -62,9 +62,7 @@ export async function POST(request: Request) {
     // Create level
     const level = await prisma.level.create({
       data: {
-        name: body.name,
-        description: body.description || null,
-        order: body.order || 0
+        name: body.name
       }
     })
     
@@ -99,8 +97,6 @@ export async function PUT(
       where: { id: params.id },
       data: {
         name: body.name || existingLevel.name,
-        description: body.description !== undefined ? body.description : existingLevel.description,
-        order: body.order !== undefined ? body.order : existingLevel.order,
         updatedAt: new Date()
       }
     })

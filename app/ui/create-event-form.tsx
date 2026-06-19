@@ -50,7 +50,6 @@ export default function CreateEventForm() {
       
       // Clear form only on success
       setTitle('')
-      setCity('')
       setEventType('workshop')
       setStartDate('')
       setStartTime('')
@@ -69,22 +68,26 @@ export default function CreateEventForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mb-8 space-y-4">
-      <input
-        type="text"
-        placeholder="Event title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="w-full border p-2 rounded"
-        required
-      />
+    <form onSubmit={handleSubmit} className="mb-8 space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-[--text-secondary] mb-1">Event Title</label>
+        <input
+          type="text"
+          placeholder="Enter event title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="form-input"
+          required
+        />
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Event Type</label>
+          <label className="block text-sm font-medium text-[--text-secondary] mb-1">Event Type</label>
           <select
             value={eventType}
             onChange={(e) => setEventType(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="form-input"
           >
             <option value="workshop">Workshop</option>
             <option value="class">Class</option>
@@ -93,35 +96,35 @@ export default function CreateEventForm() {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
+          <label className="block text-sm font-medium text-[--text-secondary] mb-1">Duration (minutes)</label>
           <input
             type="number"
             placeholder="Duration in minutes"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="form-input"
           />
         </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Start Date</label>
+          <label className="block text-sm font-medium text-[--text-secondary] mb-1">Start Date</label>
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="form-input"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Start Time</label>
+          <label className="block text-sm font-medium text-[--text-secondary] mb-1">Start Time</label>
           <input
             type="time"
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="form-input"
             required
           />
         </div>
@@ -129,22 +132,22 @@ export default function CreateEventForm() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">End Date</label>
+          <label className="block text-sm font-medium text-[--text-secondary] mb-1">End Date</label>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="form-input"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">End Time</label>
+          <label className="block text-sm font-medium text-[--text-secondary] mb-1">End Time</label>
           <input
             type="time"
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="form-input"
             required
           />
         </div>
@@ -152,40 +155,40 @@ export default function CreateEventForm() {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Style</label>
+          <label className="block text-sm font-medium text-[--text-secondary] mb-1">Style</label>
           <input
             type="text"
             placeholder="Style (e.g. Jazz, Ballet)"
             value={style}
             onChange={(e) => setStyle(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="form-input"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Level</label>
+          <label className="block text-sm font-medium text-[--text-secondary] mb-1">Level</label>
           <input
             type="text"
             placeholder="Level (e.g. Beginner, Intermediate)"
             value={level}
             onChange={(e) => setLevel(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="form-input"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Venue</label>
+          <label className="block text-sm font-medium text-[--text-secondary] mb-1">Venue</label>
           <input
             type="text"
             placeholder="Venue name"
             value={venue}
             onChange={(e) => setVenue(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="form-input"
           />
         </div>
       </div>
       
       <button
         type="submit"
-        className="bg-rose-800 text-white px-4 py-2 rounded hover:bg-rose-900"
+        className="btn-primary w-full md:w-auto"
       >
         Add Event
       </button>

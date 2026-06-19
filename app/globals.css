@@ -2,13 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  --deep-rose: #9B2335;
+  --warm-off-white: #FDFAF6;
+  --surface-dim: #DCD9D9;
+  --text-on-surface: #1A1A1A;
+  --text-secondary: #4A4A4A;
+}
+
 body {
-  background-color: rgb(255, 241, 242);
-  color: rgb(28, 25, 23);
+  background-color: var(--warm-off-white);
+  color: var(--text-on-surface);
+  font-family: 'Inter', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Playfair Display', serif;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  /* Custom shadow for cards */
+  .shadow-card {
+    box-shadow: 0 4px 20px rgba(26, 26, 26, 0.05);
+  }
+  
+  /* Button styles */
+  .btn-primary {
+    @apply bg-[--deep-rose] hover:bg-[#7a1c2a] text-white px-4 py-2 rounded-lg transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply bg-white hover:bg-rose-50 text-[--deep-rose] border border-rose-200 px-4 py-2 rounded-lg transition-colors;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-white border border-rose-200 p-6 rounded-lg shadow-card;
+  }
+  
+  /* Form input styles */
+  .form-input {
+    @apply w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-[--deep-rose] focus:border-[--deep-rose];
+  }
+  
+  /* Filter form styles */
+  .filter-form {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-4;
   }
 }
