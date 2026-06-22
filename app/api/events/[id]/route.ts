@@ -243,7 +243,7 @@ export async function PUT(
             (childPayload as any).band = child.band;
           }
           
-          // Handle styles for social events
+          // Handle styles for child events
           if (child.event_type === 'social' && child.style_ids) {
             // Create the child event first to get its ID
             const newChildEvent = await prisma.event.create({
@@ -261,8 +261,23 @@ export async function PUT(
                 data: styleEntries
               });
             }
+          } else if (child.event_type === 'class' && child.style_id) {
+            // Create the child event first to get its ID
+            const newChildEvent = await prisma.event.create({
+              data: childPayload
+            });
+            
+            // Then create the style association for class events
+            const styleEntries = [{
+              event_id: newChildEvent.id,
+              style_id: child.style_id
+            }];
+            
+            await prisma.eventStyle.createMany({
+              data: styleEntries
+            });
           } else {
-            // For class events or other types, create directly
+            // For other types or when no styles are provided, create directly
             await prisma.event.create({
               data: childPayload
             });

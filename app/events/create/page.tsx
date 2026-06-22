@@ -16,6 +16,8 @@ type ChildEvent = {
   style_id?: string
   style_ids?: string[]
   level_id?: string
+  style_name?: string
+  level_name?: string
   teacher?: string | null
   dj?: string | null
   band?: string | null
@@ -90,6 +92,9 @@ export default function CreateEventPage() {
   // Social form state
   const [socialStyles, setSocialStyles] = useState<string[]>([])
   const [socialStyleIds, setSocialStyleIds] = useState<string[]>([])
+  const [allSocialStyles, setAllSocialStyles] = useState<any[]>([])
+  const [isSocialStyleDropdownOpen, setIsSocialStyleDropdownOpen] = useState(false)
+  const [socialStyleSearchTerm, setSocialStyleSearchTerm] = useState('')
   const [dj, setDj] = useState('')
   const [band, setBand] = useState('')
   const [socialStartTime, setSocialStartTime] = useState('')
@@ -163,6 +168,45 @@ export default function CreateEventPage() {
       setStyles([])
     }
   }, [searchStylesTerm])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const socialStyleDropdown = document.getElementById('social-style-dropdown');
+      if (isSocialStyleDropdownOpen && socialStyleDropdown && !socialStyleDropdown.contains(event.target as Node)) {
+        setIsSocialStyleDropdownOpen(false);
+        setSocialStyleSearchTerm('');
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSocialStyleDropdownOpen]);
+
+  // Fetch levels based on search term
+  useEffect(() => {
+    if (searchLevelsTerm.length > 0) {
+      const fetchLevels = async () => {
+        try {
+          const response = await fetch(`/api/levels?name=${encodeURIComponent(searchLevelsTerm)}`)
+          const data = await response.json()
+          setLevels(data)
+        } catch (error) {
+          console.error('Error fetching levels:', error)
+        }
+      }
+      
+      const debounceTimer = setTimeout(() => {
+        fetchLevels()
+      }, 300)
+      
+      return () => clearTimeout(debounceTimer)
+    } else {
+      setLevels([])
+    }
+  }, [searchLevelsTerm])
 
   // Fetch levels
   useEffect(() => {
@@ -430,7 +474,7 @@ export default function CreateEventPage() {
         }
       }
       
-      router.push('/events')
+      router.push('/')
     } catch (error) {
       console.error('Error creating event:', error)
       alert('Failed to create event. Please check the console for details.')
@@ -536,6 +580,8 @@ export default function CreateEventPage() {
     setSocialEndTime('')
     setSocialCost('')
     setSocialDescription('')
+    setIsSocialStyleDropdownOpen(false)
+    setSocialStyleSearchTerm('')
   }
 
   return (
@@ -860,119 +906,137 @@ export default function CreateEventPage() {
                     {/* Style */}
                     <div>
                       <label htmlFor="classStyle" className="block text-sm font-medium mb-1 text-slate-700">Style</label>
-                      <input
-                        type="text"
-                        id="classStyle"
-                        value={classStyle}
-                        onChange={(e) => setClassStyle(e.target.value)}
-                        placeholder="Enter style name..."
-                        className="w-full border p-2 rounded"
-                        required
-                      />
-                      {classStyle && (
-                        <div className="mt-1">
-                          <button 
-                            type="button" 
-                            onClick={async () => {
-                              // Try to find existing style or create new one
-                              try {
-                                const response = await fetch(`/api/styles?name=${encodeURIComponent(classStyle)}`);
-                                const styles = await response.json();
-                                
-                                if (styles && styles.length > 0) {
-                                  // Use existing style ID
-                                  setClassStyleId(styles[0].id);
-                                } else {
-                                  // Create new style and use its ID
-                                  const newStyleResponse = await fetch('/api/styles', {
-                                    method: 'POST',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                    },
-                                    body: JSON.stringify({ name: classStyle }),
-                                  });
-                                  
-                                  if (newStyleResponse.ok) {
-                                    const newStyle = await newStyleResponse.json();
-                                    setClassStyleId(newStyle.id);
-                                  } else {
-                                    // If creation fails, fallback to placeholder
-                                    const styleId = classStyle.toLowerCase().replace(/\s+/g, '_');
-                                    setClassStyleId(styleId);
-                                  }
-                                }
-                              } catch (error) {
-                                console.error('Error handling style:', error);
-                                // Fallback to placeholder ID on error
-                                const styleId = classStyle.toLowerCase().replace(/\s+/g, '_');
-                                setClassStyleId(styleId);
-                              }
-                            }}
-                            className="text-rose-700 hover:text-rose-900 text-sm"
-                          >
-                            Use this style
-                          </button>
-                        </div>
-                      )}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          id="classStyle"
+                          value={classStyle}
+                          onChange={(e) => {
+                            setClassStyle(e.target.value);
+                            setSearchStylesTerm(e.target.value);
+                          }}
+                          placeholder="Enter style name..."
+                          className="w-full border p-2 rounded"
+                          required
+                        />
+                        {searchStylesTerm.length > 0 && (
+                          <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg">
+                            {styles.length > 0 ? (
+                              styles.map((style) => (
+                                <div
+                                  key={style.id}
+                                  onClick={() => {
+                                    setClassStyle(style.name);
+                                    setClassStyleId(style.id);
+                                    setSearchStylesTerm('');
+                                    setStyles([]);
+                                  }}
+                                  className="p-2 hover:bg-gray-100 cursor-pointer"
+                                >
+                                  {style.name}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="p-2 text-gray-500">
+                                No styles found. 
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const response = await fetch('/api/styles', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ name: searchStylesTerm }),
+                                      });
+                                      
+                                      if (response.ok) {
+                                        const createdStyle = await response.json();
+                                        setClassStyleId(createdStyle.id);
+                                        setClassStyle(searchStylesTerm);
+                                        setSearchStylesTerm('');
+                                        setStyles([]);
+                                      }
+                                    } catch (error) {
+                                      console.error('Error creating style:', error);
+                                    }
+                                  }}
+                                  className="text-rose-600 hover:text-rose-800 ml-1"
+                                >
+                                  Use this style
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   
                     {/* Level */}
                     <div>
                       <label htmlFor="classLevel" className="block text-sm font-medium mb-1 text-slate-700">Level</label>
-                      <input
-                        type="text"
-                        id="classLevel"
-                        value={classLevel}
-                        onChange={(e) => setClassLevel(e.target.value)}
-                        placeholder="Enter level name..."
-                        className="w-full border p-2 rounded"
-                        required
-                      />
-                      {classLevel && (
-                        <div className="mt-1">
-                          <button 
-                            type="button" 
-                            onClick={async () => {
-                              // Try to find existing level or create new one
-                              try {
-                                const response = await fetch(`/api/levels?name=${encodeURIComponent(classLevel)}`);
-                                const levels = await response.json();
-                                
-                                if (levels && levels.length > 0) {
-                                  // Use existing level ID
-                                  setClassLevelId(levels[0].id);
-                                } else {
-                                  // Create new level and use its ID
-                                  const newLevelResponse = await fetch('/api/levels', {
-                                    method: 'POST',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                    },
-                                    body: JSON.stringify({ name: classLevel }),
-                                  });
-                                  
-                                  if (newLevelResponse.ok) {
-                                    const newLevel = await newLevelResponse.json();
-                                    setClassLevelId(newLevel.id);
-                                  } else {
-                                    // If creation fails, fallback to placeholder
-                                    const levelId = classLevel.toLowerCase().replace(/\s+/g, '_');
-                                    setClassLevelId(levelId);
-                                  }
-                                }
-                              } catch (error) {
-                                console.error('Error handling level:', error);
-                                // Fallback to placeholder ID on error
-                                const levelId = classLevel.toLowerCase().replace(/\s+/g, '_');
-                                setClassLevelId(levelId);
-                              }
-                            }}
-                            className="text-rose-700 hover:text-rose-900 text-sm"
-                          >
-                            Use this level
-                          </button>
-                        </div>
-                      )}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          id="classLevel"
+                          value={classLevel}
+                          onChange={(e) => {
+                            setClassLevel(e.target.value);
+                            setSearchLevelsTerm(e.target.value);
+                          }}
+                          placeholder="Enter level name..."
+                          className="w-full border p-2 rounded"
+                          required
+                        />
+                        {searchLevelsTerm.length > 0 && (
+                          <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg">
+                            {levels.length > 0 ? (
+                              levels.map((level) => (
+                                <div
+                                  key={level.id}
+                                  onClick={() => {
+                                    setClassLevel(level.name);
+                                    setClassLevelId(level.id);
+                                    setSearchLevelsTerm('');
+                                    setLevels([]);
+                                  }}
+                                  className="p-2 hover:bg-gray-100 cursor-pointer"
+                                >
+                                  {level.name}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="p-2 text-gray-500">
+                                No levels found. 
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const response = await fetch('/api/levels', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ name: searchLevelsTerm }),
+                                      });
+                                      
+                                      if (response.ok) {
+                                        const createdLevel = await response.json();
+                                        setClassLevelId(createdLevel.id);
+                                        setClassLevel(searchLevelsTerm);
+                                        setSearchLevelsTerm('');
+                                        setLevels([]);
+                                      }
+                                    } catch (error) {
+                                      console.error('Error creating level:', error);
+                                    }
+                                  }}
+                                  className="text-rose-600 hover:text-rose-800 ml-1"
+                                >
+                                  Use this level
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   
                   {/* Teacher */}
@@ -1057,11 +1121,13 @@ export default function CreateEventPage() {
                       }
                       
                       const newChild = {
-                        event_type: 'class',
+                        event_type: 'class' as 'class',
                         start_time: classStartTime,
                         end_time: classEndTime,
                         style_id: classStyleId,
+                        style_name: classStyle,
                         level_id: classLevelId,
+                        level_name: classLevel,
                         teacher: teacher || undefined
                       };
                       
@@ -1098,19 +1164,119 @@ export default function CreateEventPage() {
                   {/* Styles */}
                   <div>
                     <label htmlFor="socialStyles" className="block text-sm font-medium mb-1 text-slate-700">Styles</label>
-                    <input
-                      type="text"
-                      id="socialStyles"
-                      value={socialStyles.join(', ')}
-                      onChange={(e) => {
-                        const styles = e.target.value.split(',').map(s => s.trim()).filter(s => s)
-                        setSocialStyles(styles)
-                        setSocialStyleIds(styles.map(() => '')) // Placeholder IDs
-                      }}
-                      placeholder="Search styles (comma separated)..."
-                      className="w-full border p-2 rounded"
-                      required
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        id="socialStyles"
+                        value={socialStyles.join(', ')}
+                        onChange={(e) => {
+                          const styles = e.target.value.split(',').map(s => s.trim()).filter(s => s)
+                          setSocialStyles(styles)
+                          setSocialStyleIds(styles.map(() => '')) // Placeholder IDs
+                        }}
+                        placeholder="Search styles (comma separated)..."
+                        className="w-full border p-2 rounded"
+                        required
+                        onClick={() => setIsSocialStyleDropdownOpen(!isSocialStyleDropdownOpen)}
+                        onFocus={() => setIsSocialStyleDropdownOpen(true)}
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                      </div>
+                      
+                      {isSocialStyleDropdownOpen && (
+                        <div id="social-style-dropdown" className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg">
+                          <div className="p-2 border-b">
+                            <input
+                              type="text"
+                              placeholder="Search styles..."
+                              className="w-full p-2 border rounded"
+                              value={socialStyleSearchTerm}
+                              onChange={(e) => setSocialStyleSearchTerm(e.target.value)}
+                            />
+                          </div>
+                          <div className="max-h-60 overflow-y-auto">
+                            {allSocialStyles
+                              .filter(style => style.name.toLowerCase().includes(socialStyleSearchTerm.toLowerCase()))
+                              .map((style: any) => (
+                                <div key={style.id} className="flex items-center p-2 hover:bg-gray-100">
+                                  <input
+                                    type="checkbox"
+                                    id={`style-${style.id}`}
+                                    checked={socialStyleIds.includes(style.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        // Add style to selection
+                                        const newIds = [...socialStyleIds, style.id]
+                                        const newNames = [...socialStyles, style.name]
+                                        setSocialStyleIds(newIds)
+                                        setSocialStyles(newNames)
+                                      } else {
+                                        // Remove style from selection
+                                        const index = socialStyleIds.indexOf(style.id)
+                                        if (index > -1) {
+                                          const newIds = [...socialStyleIds]
+                                          const newNames = [...socialStyles]
+                                          newIds.splice(index, 1)
+                                          newNames.splice(index, 1)
+                                          setSocialStyleIds(newIds)
+                                          setSocialStyles(newNames)
+                                        }
+                                      }
+                                    }}
+                                    className="mr-2"
+                                  />
+                                  <label htmlFor={`style-${style.id}`} className="flex-grow">
+                                    {style.name}
+                                  </label>
+                                </div>
+                              ))}
+                            {socialStyleSearchTerm && 
+                              allSocialStyles
+                                .filter(style => style.name.toLowerCase().includes(socialStyleSearchTerm.toLowerCase()))
+                                .length === 0 && (
+                                <div className="p-2 text-gray-500">
+                                  No styles found. 
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        const response = await fetch('/api/styles', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ name: socialStyleSearchTerm })
+                                        })
+                                        
+                                        if (response.ok) {
+                                          const newStyle = await response.json()
+                                          // Add the new style to selections
+                                          const newIds = [...socialStyleIds, newStyle.id]
+                                          const newNames = [...socialStyles, newStyle.name]
+                                          setSocialStyleIds(newIds)
+                                          setSocialStyles(newNames)
+                                          // Refresh all styles list
+                                          const allResponse = await fetch('/api/styles')
+                                          const allData = await allResponse.json()
+                                          setAllSocialStyles(allData)
+                                          // Clear search term
+                                          setSocialStyleSearchTerm('')
+                                        }
+                                      } catch (error) {
+                                        console.error('Error creating new style:', error)
+                                      }
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800 ml-1"
+                                  >
+                                    Create &quot;{socialStyleSearchTerm}&quot;
+                                  </button>
+                                </div>
+                              )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   {/* DJ */}
@@ -1209,12 +1375,19 @@ export default function CreateEventPage() {
               </div>
             )}
             
-            {/* Child Events Display */}
+            {/* Schedule Display */}
             {children.length > 0 && (
               <div className="mt-6">
-                <h3 className="text-lg font-medium mb-4 text-slate-700">Child Events</h3>
+                <h3 className="text-lg font-medium mb-4 text-slate-700">Schedule</h3>
                 <div className="space-y-2">
-                  {children.map((child, index) => (
+                  {[...children].sort((a, b) => {
+                    // First sort by start time
+                    if (a.start_time !== b.start_time) {
+                      return a.start_time.localeCompare(b.start_time);
+                    }
+                    // If start times are equal, classes come before socials
+                    return a.event_type === 'class' && b.event_type === 'social' ? -1 : 0;
+                  }).map((child, index) => (
                     <div key={`${child.event_type}-${index}`} className="border border-rose-200 p-3 rounded flex justify-between items-center">
                       <div>
                         <span className="font-medium">
@@ -1225,7 +1398,7 @@ export default function CreateEventPage() {
                         {child.event_type === 'class' && (
                           <>
                             {' - '}
-                            Style: {child.style_id || 'None'} | Level: {child.level_id || 'None'}
+                            Style: {child.style_name || child.style_id || 'None'} | Level: {child.level_name || child.level_id || 'None'}
                             {child.teacher && ` | ${child.teacher}`}
                           </>
                         )}
