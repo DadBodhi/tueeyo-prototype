@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { formatEventTitle } from './utils/eventFormatter'
 
 export default function Home() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
@@ -179,7 +180,7 @@ export default function Home() {
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-primary font-bold text-label-md">{event.start_datetime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                     </div>
-                    <h3 className="font-headline-md text-headline-md text-on-surface mb-2 leading-tight">{event.title}</h3>
+                    <h3 className="font-headline-md text-headline-md text-on-surface mb-2 leading-tight">{formatEventTitle(event)}</h3>
                     <div className="flex items-center gap-2 text-secondary mb-4">
                       <span className="material-symbols-outlined text-[18px]">location_on</span>
                       <span className="text-label-md">{event.venue?.name || 'Unknown Venue'}{event.venue?.city ? `, ${event.venue.city}` : ''}</span>
@@ -226,7 +227,7 @@ export default function Home() {
               <article key={event.id} className="group bg-surface-container-lowest rounded-2xl overflow-hidden flex flex-col border border-outline-variant/20 border-l-4 border-l-primary shadow-[0_4px_20px_rgba(26,26,26,0.05)] hover:-translate-y-2 transition-all duration-300">
                 <div className="p-6 flex flex-col flex-1">
                   <div className="mb-4">
-                    <h2 className="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors mb-2 leading-tight">{event.title}</h2>
+                    <h2 className="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors mb-2 leading-tight">{formatEventTitle(event)}</h2>
                     <div className="flex items-center gap-1.5 text-secondary text-label-md mb-1">
                       <span className="material-symbols-outlined text-base">location_on</span>
                       <span>{event.venue?.name || 'Unknown Venue'}{event.venue?.city ? `, ${event.venue.city}` : ''}</span>

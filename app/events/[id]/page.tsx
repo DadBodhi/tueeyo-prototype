@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatEventTitle } from '../../utils/eventFormatter'
 
 export default function EventDetailPage({ params }: { params: { id: string } }) {
   const [event, setEvent] = useState<any>(null)
@@ -141,7 +142,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                             {child.event_type.charAt(0).toUpperCase() + child.event_type.slice(1)}
                           </span>
                         )}
-                        <h3 className="font-headline-md !text-lg text-[--text-on-surface]">{child.title}</h3>
+                        <h3 className="font-headline-md !text-lg text-[--text-on-surface]">{formatEventTitle(child)}</h3>
                       </div>
                       <p className="text-[--text-secondary]">
                         {child.event_type === 'class' && child.teacher ? `Teacher: ${child.teacher}` : 
