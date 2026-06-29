@@ -10,6 +10,10 @@
   --surface-dim: #DCD9D9;
   --text-on-surface: #1A1A1A;
   --text-secondary: #4A4A4A;
+  --surface-container-lowest: #FFFFFF;
+  --surface-container-low: #F5F3F3;
+  --outline-variant: #E0DAD9;
+  --cream: #FFFFFF;
 }
 
 body {
@@ -30,6 +34,17 @@ h1, h2, h3, h4, h5, h6 {
   /* Custom shadow for cards */
   .shadow-card {
     box-shadow: 0 4px 20px rgba(26, 26, 26, 0.05);
+  }
+  
+  /* Glass card styling - updated to match reference */
+  .glass-card {
+    background: #ffffff;
+    box-shadow: 0 4px 20px rgba(26,26,26,0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .glass-card:hover {
+    box-shadow: 0 8px 30px rgba(26,26,26,0.08);
   }
   
   /* Button styles */
@@ -54,5 +69,50 @@ h1, h2, h3, h4, h5, h6 {
   /* Filter form styles */
   .filter-form {
     @apply grid grid-cols-1 md:grid-cols-3 gap-4;
+  }
+  
+  /* Headline fonts */
+  .font-headline-lg {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 2rem;
+    line-height: 1.25;
+  }
+  
+  .font-headline-md {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    font-size: 1.5rem;
+    line-height: 1.33;
+  }
+  
+  .font-body-lg {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 1.125rem;
+    line-height: 1.56;
+  }
+  
+  .font-body-md {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  .font-label-md {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.01em;
+    line-height: 1.25;
+  }
+  
+  .font-label-sm {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    line-height: 1.33;
   }
 }
